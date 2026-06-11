@@ -20,7 +20,6 @@ execute:
 Importing Libraries
 ```{r}
 library(tidyverse)
-library(janitor)
 ```
 
 
@@ -48,11 +47,12 @@ We will work mainly with the localities dataset, already available in the shared
 ```{r}
 #You can download and import, but here I also show you how you can download it directly from the web!
 
-localities_2022 <- read_csv("https://www.dropbox.com/scl/fi/io3s84jk1mftpv9xnr2yf/localities_2022.csv?rlkey=xj42l8thfpmrm93l02wao8s69&st=72vb8hix&dl=1")
+localities_2023 <- read_csv("https://raw.githubusercontent.com/saaralonbarkat/BA-data-course/refs/heads/main/data/localities/localities_2023.csv")
+
 ```
 
 ```{r}
-localities_2022 %>% glimpse()
+localities_2023 %>% glimpse()
 ```
 
 
@@ -72,7 +72,7 @@ Before starting - a general comment is needed about working with datasets as obj
 ## Selecting columns with `select`
 
 ```{r}
-localities_2022 %>% 
+localities_2023 %>% 
   select(name,
          population,
          income) %>% 
@@ -82,7 +82,7 @@ localities_2022 %>%
 
 Remember, you can also save it to a new dataset and give it a new name. 
 ```{r}
-localities_2022_short <- localities_2022 %>% 
+localities_2023_short <- localities_2023 %>% 
   select(name,
          population,
          income)
@@ -92,7 +92,7 @@ localities_2022_short <- localities_2022 %>%
 You can also "unselect" columns with "-":
 
 ```{r}
-localities_2022 %>% 
+localities_2023 %>% 
   select(-cancer_men,
          -cancer_women) %>% 
   head()
@@ -104,23 +104,22 @@ localities_2022 %>%
 
 Here are a few examples, using different logical operators:
 ```{r}
-localities_2022 %>% 
+localities_2023 %>% 
   filter(district_eng=="Haifa")
 
-localities_2022 %>% 
+localities_2023 %>% 
   filter(district_eng!="Haifa") 
 
-localities_2022 %>% 
+localities_2023 %>% 
   filter(distance_tlv>50)
 
-localities_2022 %>% 
+localities_2023 %>% 
   filter(distance_tlv<50)
 
-
-localities_2022 %>% 
+localities_2023 %>% 
   filter(district_eng=="Haifa" & distance_tlv<50) # '&' = and
 
-localities_2022 %>% 
+localities_2023 %>% 
   filter(district_eng=="Haifa" | distance_tlv<50) # `|`= or
 ```
 
@@ -129,17 +128,17 @@ localities_2022 %>%
 ## Arranging raws with `arrange`
 
 ```{r}
-localities_2022 %>% 
+localities_2023 %>% 
   arrange(distance_tlv)
 
-localities_2022 %>% 
+localities_2023 %>% 
   arrange(distance_tlv %>% desc())
 
-localities_2022 %>% 
-  arrange(rank)
+localities_2023 %>% 
+  arrange(socio_economic_rank)
 
-localities_2022 %>% 
-  arrange(rank,
+localities_2023 %>% 
+  arrange(socio_economic_rank,
           distance_tlv)
 ```
 
@@ -157,39 +156,25 @@ The code will be usually:
 For example - let's create a `year` variable that will receive 2022 for all raws. Let's save it into the dataset (override).  
 
 ```{r}
-localities_2022 <- localities_2022 %>% 
-mutate(year = 2022)
+localities_2023 <- localities_2023 %>% 
+mutate(year = 2023)
 ```
 
 
-## Recoding categorical variables with `recode`
+## Recoding categorical variables with `case_match`
+
 
 ```{r}
 
-localities_2022 <- localities_2022 %>% 
-  mutate(new_district = district_eng %>%
-           recode(Haifa="North",
-                  `Tel Aviv` = "Center"))
+localities_2023 <- localities_2023 %>% 
+  mutate(new_rank = socio_economic_rank %>%
+           case_match(
+             c(1, 2, 3)    ~ "Low",
+             c(4, 5, 6, 7) ~ "Medium",
+             c(8, 9, 10)   ~ "High"
+           ))
   
-localities_2022 %>% count(new_district)
-```
-
-```{r}
-
-localities_2022 <- localities_2022 %>% 
-  mutate(new_rank = rank %>%
-           recode(`1`="Low",
-                  `2`="Low",
-                  `3`="Low",
-                  `4`="Medium",
-                  `5`="Medium",
-                  `6`="Medium",
-                  `7`="Medium",
-                  `8`="High",
-                  `9`="High",
-                  `10`="High"))
-  
-localities_2022 %>% count(rank,new_rank)
+localities_2023 %>% count(socio_economic_rank,new_rank)
 ```
 
 
@@ -197,7 +182,7 @@ localities_2022 %>% count(rank,new_rank)
 
 `case_when` allows us to transform not only categorical variables but also numeric variables. 
 ```{r}
-localities_2022 <- localities_2022 %>% 
+localities_2023 <- localities_2023 %>% 
   mutate(arab_locality_1 = case_when(
     percent_arab==100 ~ "Arab",
     percent_arab==0 ~ "Jewish",
@@ -205,11 +190,11 @@ localities_2022 <- localities_2022 %>%
   )
   )
 
-localities_2022 %>% count(arab_locality_1)
+localities_2023 %>% count(arab_locality_1)
 ```
 
 ```{r}
-localities_2022 <- localities_2022 %>% 
+localities_2023 <- localities_2023 %>% 
   mutate(arab_locality_2 = case_when(
     percent_arab>=90 ~ "Arab",
     percent_arab<=10 ~ "Jewish",
@@ -217,7 +202,7 @@ localities_2022 <- localities_2022 %>%
   )
   )
 
-localities_2022 %>% count(arab_locality_2)
+localities_2023 %>% count(arab_locality_2)
 ```
 
 
@@ -228,17 +213,17 @@ This can be very useful for many purposes.
 
 Example 1: we want to add a new obesity measure that is the delta between 2022 and 2021 elections turnout:
 ```{r}
-localities_2022 <- localities_2022 %>% 
+localities_2023 <- localities_2023 %>% 
   mutate(turnout_increase_2022_2021 = (voting_rate_knesset_2022 - voting_rate_knesset_2021))
 
-localities_2022 %>% 
+localities_2023 %>% 
   select(name,
          turnout_increase_2022_2021,
          voting_rate_knesset_2022,
          voting_rate_knesset_2021) %>% 
   arrange(turnout_increase_2022_2021 %>% desc())
 
-localities_2022 %>% 
+localities_2023 %>% 
   ggplot(aes(turnout_increase_2022_2021))+
   geom_histogram()
 ```
@@ -257,13 +242,13 @@ The code will be usually:
 For example, let's aggregate the data at the district level. 
 
 ```{r}
-localities_2022 %>% 
+localities_2023 %>% 
   group_by(district_eng) %>% 
   summarise(sum(population),
-            mean(voting_rate_knesset_2022),
-            mean(income),
-            median(rank),
-            max(rank),
+            mean(voting_rate_knesset_2022,na.rm = T),
+            mean(income,na.rm = T),
+            median(socio_economic_rank,na.rm = T),
+            max(socio_economic_rank,na.rm = T),
             mean(teacher_student_ratio,na.rm = T))
 ```
 
@@ -274,13 +259,13 @@ localities_2022 %>%
 
 Say our data was split to three tables: cities, local municipalities and regional councils. All tables have the same columns/variables. 
 ```{r}
-municipality <- localities_2022 %>% 
+municipality <- localities_2023 %>% 
   filter(type_eng=="municipality")
 
-local_municipality <- localities_2022 %>% 
+local_municipality <- localities_2023 %>% 
   filter(type_eng=="local municipality")
 
-regional_council <- localities_2022 %>% 
+regional_council <- localities_2023 %>% 
   filter(type_eng=="regional council")
 ```
 
@@ -299,22 +284,24 @@ Say found another information on our cases in another dataset, and we want to me
 
 For this challenge, we have `join` functions: 
 
-For example, let's merge the localities data with another dataset by the CBS on specific settlements (not localities). 
+For example, let's merge the localities data with another dataset on election results.
+
+
 ```{r}
-yeshuvim_2020 <- read_csv("https://www.dropbox.com/s/2om27wotvw9i1x3/yeshuvim_cbs_2020.csv?dl=1")
+library(janitor)
 ```
 
 
 ```{r}
-elections_2022 <- read_csv("https://www.dropbox.com/scl/fi/xwl1csshdld6s2hfy6bst/election_results_2022.csv?rlkey=d0dri3sbzc2tehf8o7z3yiyc1&st=4n1m1but&dl=1") 
+elections_2022_raw <- read_csv("https://raw.githubusercontent.com/saaralonbarkat/BA-data-course/refs/heads/main/data/localities/election_results_2022.csv") 
 
-elections_2022 <- elections_2022 %>% janitor::clean_names()
+elections_2022 <- elections_2022_raw %>% janitor::clean_names()
 
 elections_2022 %>% glimpse()
 ```
 
 ```{r}
-new_dataset <- localities_2022 %>% 
+new_dataset <- localities_2023 %>% 
   filter(type_eng!="regional council") %>% 
   left_join(elections_2022, 
             by = c("symbol" = "sml_yswb"))
@@ -329,19 +316,23 @@ new_dataset %>%
   geom_histogram()
 
 new_dataset %>% 
-  ggplot(aes(x=rank,y=likud_percent))+
+  ggplot(aes(x=socio_economic_rank,y=likud_percent))+
   geom_point()
+
+new_dataset %>% 
+  ggplot(aes(x=factor(socio_economic_rank),y=likud_percent))+
+  geom_boxplot()
 ```
 
 
 # Reshaping data (long and wide forms)
 
 ```{r}
-t1 <- localities_2022 %>% 
+t1 <- localities_2023 %>% 
   drop_na(name_eng) %>% 
   select(name_eng,
          voting_rate_knesset_2022,
-         voting_rate_municipalities_2018)
+         voting_rate_municipalities_2024)
 
 
 ```
@@ -349,7 +340,7 @@ t1 <- localities_2022 %>%
 From wide to long ("pivot"):
 ```{r}
 t1_longer <- t1 %>% 
-pivot_longer(cols=voting_rate_knesset_2022:voting_rate_municipalities_2018,
+pivot_longer(cols=voting_rate_knesset_2022:voting_rate_municipalities_2024,
              names_to = "election",
              values_to = "turnout")
 ```
@@ -378,16 +369,16 @@ t1_longer %>%
 What can explain this... Where is the voting turnout for local elections higher than national elections. Any guess??   
 
 ```{r}
-t2 <- localities_2022 %>% 
+t2 <- localities_2023 %>% 
   drop_na(name_eng) %>% 
   select(name_eng,
          voting_rate_knesset_2022,
-         voting_rate_municipalities_2018,
+         voting_rate_municipalities_2024,
          arab_locality_2)
 
 
 t2_longer <- t2 %>% 
-pivot_longer(cols=voting_rate_knesset_2022:voting_rate_municipalities_2018,
+pivot_longer(cols=voting_rate_knesset_2022:voting_rate_municipalities_2024,
              names_to = "election",
              values_to = "turnout")
 
